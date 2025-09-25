@@ -8,55 +8,182 @@
 import SwiftUI
 
 struct ContentView: View {
+    @State private var shoesImages = ["shoe1", "shoe2", "shoe3"]
+    @State private var shoesNames = ["Air Jordan 1", "Nike Air Force 1", "Adidas Ultraboost"]
+    @State private var shoesDescriptions = [
+        "The most iconic sneaker in the world.",
+        "The ultimate running shoe.",
+        "The most comfortable sneaker."
+    ]
+    @State private var shoesPrices = [150, 200, 180]
+    @State private var shoesTrend = [true, true, false]
+    
+    @State private var topCardIndex = 0
+    @State private var swipeOffset: CGSize = .zero
+    @State private var swipeDirection: SwipeDirection? = nil
+    @State private var showCartEffect = false
+    
+    enum SwipeDirection {
+        case left, right
+    }
+    
+    var body: some View {
+        GeometryReader { geo in
+            ZStack {
+                // Next card behind top card (peek effect)
+                if topCardIndex + 1 < shoesImages.count {
+                    cardView(
+                        shoeImage: shoesImages[topCardIndex + 1],
+                        shoeName: shoesNames[topCardIndex + 1],
+                        shoePrice: shoesPrices[topCardIndex + 1],
+                        shoetrendUp: shoesTrend[topCardIndex + 1],
+                        shoeDescription: shoesDescriptions[topCardIndex + 1],
+                        cardSize: geo.size
+                    )
+                    .scaleEffect(0.95)
+                    .offset(y: 10)
+                    .zIndex(1)
+                    .animation(nil, value: topCardIndex)
+                }
+                
+                // Top card
+                if topCardIndex < shoesImages.count {
+                    cardView(
+                        shoeImage: shoesImages[topCardIndex],
+                        shoeName: shoesNames[topCardIndex],
+                        shoePrice: shoesPrices[topCardIndex],
+                        shoetrendUp: shoesTrend[topCardIndex],
+                        shoeDescription: shoesDescriptions[topCardIndex],
+                        cardSize: geo.size
+                    )
+                    .offset(swipeOffset)
+                    .rotationEffect(Angle(degrees: Double(swipeOffset.width / 15)))
+                    .gesture(
+                        DragGesture()
+                            .onChanged { value in
+                                swipeOffset = value.translation
+                                swipeDirection = swipeOffset.width > 0 ? .right : (swipeOffset.width < 0 ? .left : nil)
+                            }
+                            .onEnded { value in
+                                let swipeThreshold: CGFloat = 120
+                                let swipeVelocity = value.predictedEndTranslation.width
+                                
+                                if abs(swipeOffset.width) > swipeThreshold || abs(swipeVelocity) > 500 {
+                                    withAnimation(.interpolatingSpring(mass: 1.0, stiffness: 100, damping: 10, initialVelocity: 20)) {
+                                        let flyAwayDistance: CGFloat = 1000
+                                        swipeOffset.width = swipeOffset.width > 0 ? flyAwayDistance : -flyAwayDistance
+                                        swipeOffset.height = value.translation.height * 0.5
+                                    }
+                                    
+                                    if swipeOffset.width > 0 {
+                                        withAnimation(.spring(response: 0.4, dampingFraction: 0.6)) {
+                                            showCartEffect = true
+                                        }
+                                    }
+                                    
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                        if swipeOffset.width > 0 {
+                                            addToCart()
+                                        } else {
+                                            showLater()
+                                        }
+                                        topCardIndex += 1
+                                        swipeOffset = .zero
+                                        swipeDirection = nil
+                                        showCartEffect = false
+                                    }
+                                } else {
+                                    withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+                                        swipeOffset = .zero
+                                        swipeDirection = nil
+                                    }
+                                }
+                            }
+                    )
+                    .zIndex(2)
+                } else {
+                    Text("You have gone through every product!")
+                        .font(.title)
+                        .foregroundColor(.gray)
+                }
+                
+                // Friendly Cart Effect
+                if showCartEffect {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 100))
+                        .foregroundColor(.green)
+                        .scaleEffect(showCartEffect ? 1.2 : 0.5)
+                        .opacity(showCartEffect ? 1 : 0)
+                        .animation(.easeInOut(duration: 0.3), value: showCartEffect)
+                        .zIndex(3)
+                }
+            }
+            .frame(width: geo.size.width, height: geo.size.height)
+            .background(Color(.systemBackground))
+        }
+    }
+    
+    func addToCart() {
+        print("Added to cart")
+    }
+    
+    func showLater() {
+        print("Marked to view later")
+    }
+}
+
+struct cardView: View {
+    var shoeImage: String
+    var shoeName: String
+    var shoePrice: Int
+    var shoetrendUp: Bool
+    var shoeDescription: String
+    var cardSize: CGSize
+    
     var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 20)
-                .fill(Color.secondary.opacity(0.08))
-                .stroke(Color.black, lineWidth: 0.5)
-                .frame(width: 360, height: 600)
+                .fill(Color.white)
+                .shadow(color: Color.black.opacity(0.15), radius: 10, x: 0, y: 5)
+            
             VStack {
-                Image("shoe1")
+                Image(shoeImage)
                     .resizable()
-                    .frame(width: 250, height: 250)
-                    /* .background(
-                        RoundedRectangle(cornerRadius: 20)
-                            .fill(Color.white)
-                            .frame(width: 300, height: 500)
-                    )*/
+                    .scaledToFit()
+                    .frame(width: cardSize.width * 0.7, height: cardSize.height * 0.4)
                     .cornerRadius(20)
-                    .padding(.top, 100)
-                VStack {
+                    .padding(.top, 40)
+                
+                VStack(spacing: 5) {
                     HStack {
-                        Text("$150")
-                            .font(.system(size: 55, weight: .semibold, design: .default))
+                        Text("$\(shoePrice)")
+                            .font(.system(size: cardSize.width * 0.12, weight: .semibold))
                             .foregroundColor(.black)
-                           
-                        
-                        Image(systemName: "chart.line.uptrend.xyaxis.circle")
-                            .foregroundColor(.red)
-                            .font(.system(size: 40, weight: .light))
+                        Image(systemName: shoetrendUp ? "chart.line.uptrend.xyaxis.circle" : "chart.line.downtrend.xyaxis.circle")
+                            .foregroundColor(shoetrendUp ? .red : .green)
+                            .font(.system(size: cardSize.width * 0.08, weight: .light))
                     }
-                    .hAlign(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.leading, 25)
-                    HStack {
-                        Text("Nike Air Force 1")
-                            .font(.system(size: 35, weight: .semibold, design: .default))
-                            .foregroundColor(.gray)
-                        Image(systemName: "chart.line.uptrend.xyaxis")
-                            .foregroundColor(.green)
-                            .frame(width: 15, height: 15)
-                            .bold()
-                            .padding(.leading, 5)
-                        
-                    }
+                    
+                    Text(shoeName)
+                        .font(.system(size: cardSize.width * 0.09, weight: .semibold))
+                        .foregroundColor(.gray)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.leading, 25)
+                    
+                    Text(shoeDescription)
+                        .font(.system(size: cardSize.width * 0.045, weight: .medium, design: .monospaced))
+                        .multilineTextAlignment(.leading)
+                        .lineLimit(5)
+                        .padding(.leading, 25)
+                        .padding(.trailing, 25)
+                        .padding(.top, 10)
                 }
-                        .vAlign(.top)
-                        .hAlign(.center)
-                
-                
             }
             .padding()
         }
+        .frame(width: cardSize.width * 0.9, height: cardSize.height * 0.85)
     }
 }
 
@@ -64,26 +191,6 @@ struct ContentView: View {
     ContentView()
 }
 
-struct cardView: View {
-    @State var shoeImage: String
-    @State var shoeName: String
-    @State var shoePrice: String
-    @State var shoetrendUp: Bool
-    
-    var body: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 20)
-                .fill(Color.gray)
-                .stroke(Color.black, lineWidth: 4)
-                .frame(width: 350, height: 500)
-            VStack {
-                Image("shoe1")
-                    .resizable()
-                    .frame(width: 250, height: 250)
-            }
-            .padding()
-        }    }
-}
 
 
 extension View{
