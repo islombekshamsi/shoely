@@ -11,7 +11,7 @@ import SwiftUI
 struct ShoeslyApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            ContentViewAgent()
         }
     }
 }
