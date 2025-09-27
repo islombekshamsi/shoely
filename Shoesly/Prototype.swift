@@ -1,4 +1,6 @@
-/*import SwiftUI
+/*
+it is currently commented out because contentviewagent has its components, it is mainly used for testing out new features without the risk of loss or crash
+import SwiftUI
 import Foundation
 
 // MARK: - Models (a subset of what the API returns)
