@@ -422,7 +422,7 @@ struct cardView: View {
                     Text(shoe.description ?? "No description available")
                         .font(.system(size: cardSize.width * 0.045, weight: .medium, design: .monospaced))
                         .multilineTextAlignment(.leading)
-                        .lineLimit(5)
+                        .lineLimit(3)
                         .padding(.leading, 25)
                         .padding(.trailing, 25)
                         .padding(.top, 10)
